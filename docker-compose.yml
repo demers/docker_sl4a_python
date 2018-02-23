@@ -1,0 +1,17 @@
+version: '2.1'
+
+services:
+  sl4a:
+    build: .
+    image: sl4a
+    container_name: sl4a
+    volumes:
+      - "data_work:/home/ubuntu/work"
+    restart: always
+    ports:
+      - "22:22"
+      - "5555:5555"
+    network_mode: "host"
+
+volumes:
+  data_work:
