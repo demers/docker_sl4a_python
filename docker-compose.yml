@@ -11,6 +11,8 @@ services:
     ports:
       - "22:22"
       - "5555:5555"
+      - "5554:5554"
+      - "5037:5037"
     network_mode: "host"
 
 volumes:
