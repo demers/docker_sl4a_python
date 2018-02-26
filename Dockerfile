@@ -56,7 +56,7 @@ RUN cd /opt && wget --quiet --output-document=android-sdk.tgz \
 
 # Setup environment
 ENV ANDROID_HOME /opt/android-sdk-linux
-ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools
+ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/tools/bin
 
 # Install sdk elements
 COPY tools /opt/tools
@@ -73,6 +73,11 @@ RUN cd ${ANDROID_HOME} \
 #RUN /opt/android-sdk-linux/tools/bin/sdkmanager --update
 RUN ["/opt/tools/android-accept-licenses2.sh", \
     "/opt/android-sdk-linux/tools/bin/sdkmanager --update"]
+
+# Acces X11
+RUN echo "X11Forwarding yes" >> /etc/ssh/ssh_config
+
+RUN apt install -y xauth vim-gtk
 
 # Installation Python 3
 RUN apt install -y git python3 python3-pip
@@ -115,7 +120,7 @@ RUN cd ${WORKDIRECTORY} \
 RUN echo "export PS1=\"\\e[0;31m $PROJECTNAME\\e[m \$PS1\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN echo "export ANDROID_HOME=\"/opt/android-sdk-linux\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools\"" >> ${WORKDIRECTORY}/.bash_profile
-
+RUN chown ${USERNAME} ${WORKDIRECTORY}/.bash_profile
 
 # Start SSHD server...
 CMD ["/usr/sbin/sshd", "-D"]
