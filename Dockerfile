@@ -13,8 +13,10 @@ ENV PASSWORD=ubuntu
 
 ENV SL4A_APK1=sl4a-r6.1.1-arm-debug.apk
 ENV SL4A_APK2=Python3ForAndroid-debug.apk
+ENV QPYTHON=qpython3-gp-1.0.3.apk
 ENV ANDROID_TOOLS=tools_r25.2.5-linux.zip
 ENV ANDROID_SDK=android-sdk_r24.3.3-linux.tgz
+ENV ANDROID_STUDIO=android-studio-ide-171.4443003-linux.zip
 
 RUN apt-get update
 
@@ -74,6 +76,17 @@ RUN cd ${ANDROID_HOME} \
 RUN ["/opt/tools/android-accept-licenses2.sh", \
     "/opt/android-sdk-linux/tools/bin/sdkmanager --update"]
 
+# Pour exécuter Android Studio
+#RUN apt-get install -y libxext6 libxtst6:i386 libxtst6
+RUN apt-get install -y libxtst6
+
+# Install Android Studio
+RUN cd /opt \
+    && wget --quiet --output-document=android-studio.zip \
+    https://dl.google.com/dl/android/studio/ide-zips/3.0.1.0/${ANDROID_STUDIO} \
+    && unzip android-studio.zip -d /opt \
+    && rm -f android-studio.zip
+
 # Acces X11
 RUN echo "X11Forwarding yes" >> /etc/ssh/ssh_config
 
@@ -84,6 +97,9 @@ RUN apt install -y git python3 python3-pip
 # Mise à jour PIP
 RUN pip3 install --upgrade pip
 
+# Fournir accès complet à Android (REVOIR)
+RUN chown $USERNAME -R /opt
+
 ## Clean up when done
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -92,9 +108,6 @@ RUN apt-get clean && \
 EXPOSE 5037
 EXPOSE 5554
 EXPOSE 5555
-#EXPOSE 5900
-#EXPOSE 80
-#EXPOSE 443
 
 # Standard SSH port
 EXPOSE 22
@@ -110,6 +123,7 @@ WORKDIR ${WORKDIRECTORY}
 
 ADD ${SL4A_APK1} ${WORKDIRECTORY}
 ADD ${SL4A_APK2} ${WORKDIRECTORY}
+ADD ${QPYTHON} ${WORKDIRECTORY}
 
 RUN cd ${WORKDIRECTORY} \
     && mv -f ${SL4A_APK1} sl4a.apk \
@@ -119,7 +133,7 @@ RUN cd ${WORKDIRECTORY} \
 
 RUN echo "export PS1=\"\\e[0;31m $PROJECTNAME\\e[m \$PS1\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN echo "export ANDROID_HOME=\"/opt/android-sdk-linux\"" >> ${WORKDIRECTORY}/.bash_profile
-RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools\"" >> ${WORKDIRECTORY}/.bash_profile
+RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools:\${ANDROID_HOME}/tools/bin:/opt/android-studio/bin\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN chown ${USERNAME} ${WORKDIRECTORY}/.bash_profile
 
 # Start SSHD server...
