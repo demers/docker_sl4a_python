@@ -77,15 +77,7 @@ RUN ["/opt/tools/android-accept-licenses2.sh", \
     "/opt/android-sdk-linux/tools/bin/sdkmanager --update"]
 
 # Pour exécuter Android Studio
-#RUN apt-get install -y libxext6 libxtst6:i386 libxtst6
 RUN apt-get install -y libxtst6
-
-# Install Android Studio
-RUN cd /opt \
-    && wget --quiet --output-document=android-studio.zip \
-    https://dl.google.com/dl/android/studio/ide-zips/3.0.1.0/${ANDROID_STUDIO} \
-    && unzip android-studio.zip -d /opt \
-    && rm -f android-studio.zip
 
 # Acces X11
 RUN echo "X11Forwarding yes" >> /etc/ssh/ssh_config
@@ -133,7 +125,7 @@ RUN cd ${WORKDIRECTORY} \
 
 RUN echo "export PS1=\"\\e[0;31m $PROJECTNAME\\e[m \$PS1\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN echo "export ANDROID_HOME=\"/opt/android-sdk-linux\"" >> ${WORKDIRECTORY}/.bash_profile
-RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools:\${ANDROID_HOME}/tools/bin:/opt/android-studio/bin\"" >> ${WORKDIRECTORY}/.bash_profile
+RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools:\${ANDROID_HOME}/tools/bin\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN chown ${USERNAME} ${WORKDIRECTORY}/.bash_profile
 
 # Start SSHD server...
