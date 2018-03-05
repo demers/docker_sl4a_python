@@ -4,6 +4,7 @@ services:
   sl4a:
     build: .
     image: sl4a
+    privileged: true
     container_name: sl4a
     volumes:
       - "data_work:/home/ubuntu/work"

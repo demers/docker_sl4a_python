@@ -14,9 +14,9 @@ ENV PASSWORD=ubuntu
 ENV SL4A_APK1=sl4a-r6.1.1-arm-debug.apk
 ENV SL4A_APK2=Python3ForAndroid-debug.apk
 ENV QPYTHON=qpython3-gp-1.0.3.apk
-ENV ANDROID_TOOLS=tools_r25.2.5-linux.zip
+ENV ANDROID_TOOLS=repository/sdk-tools-linux-3859397.zip
 ENV ANDROID_SDK=android-sdk_r24.3.3-linux.tgz
-ENV ANDROID_STUDIO=android-studio-ide-171.4443003-linux.zip
+ENV ANDROID_STUDIO=studio/ide-zips/3.0.1.0/android-studio-ide-171.4443003-linux.zip
 
 RUN apt-get update
 
@@ -50,6 +50,13 @@ RUN dpkg --add-architecture i386 && apt-get update \
     && apt-get install -y --force-yes expect wget \
     libc6-i386 lib32stdc++6 lib32gcc1 lib32ncurses5 lib32z1
 
+# Install Android Studio
+RUN cd /opt \
+    && mkdir -p android-sdk-linux && cd android-sdk-linux \
+    && wget --quiet --output-document=android-studio.zip \
+        https://dl.google.com/dl/android/${ANDROID_STUDIO} \
+    && unzip -o -q android-studio.zip && rm -f android-studio.zip
+
 # Install Android SDK
 RUN cd /opt && wget --quiet --output-document=android-sdk.tgz \
     http://dl.google.com/android/${ANDROID_SDK} \
@@ -71,8 +78,15 @@ RUN ["/opt/tools/android-accept-licenses.sh", \
 RUN cd ${ANDROID_HOME} \
     && unzip -o -q ${ANDROID_HOME}/temp/${ANDROID_TOOLS}
 
+# Unzip new Android tools
+RUN cd ${ANDROID_HOME} \
+    && wget --quiet --output-document=tools.zip \
+        https://dl.google.com/android/${ANDROID_TOOLS} \
+    && unzip -o -q tools.zip \
+    && rm -f tools.zip
+
 # Accept all Android licenses
-#RUN /opt/android-sdk-linux/tools/bin/sdkmanager --update
+RUN /opt/android-sdk-linux/tools/bin/sdkmanager --update
 RUN ["/opt/tools/android-accept-licenses2.sh", \
     "/opt/android-sdk-linux/tools/bin/sdkmanager --update"]
 
@@ -83,6 +97,34 @@ RUN apt-get install -y libxtst6
 RUN echo "X11Forwarding yes" >> /etc/ssh/ssh_config
 
 RUN apt install -y xauth vim-gtk
+
+# Fournir accès complet à Android (REVOIR)
+RUN chown $USERNAME -R /opt
+
+RUN apt-get install -y qemu-kvm libvirt-bin ubuntu-vm-builder bridge-utils
+
+RUN adduser $USERNAME libvirtd
+
+RUN apt-get install -y virt-manager
+
+RUN apt install -y git
+
+# Installation de https://github.com/kevinwallace/qemu-docker
+# qui permet d'avoir accès à la virtualisation KVM.
+RUN cd /root \
+    && git clone https://github.com/kevinwallace/qemu-docker.git \
+    && mv -f qemu-docker qemu \
+    && chmod +x /root/qemu/*.sh \
+    && echo "/root/qemu/kvm-mknod.sh" >> /root/cmd.sh \
+    && echo "chown root:$USERNAME /dev/kvm" >> /root/cmd.sh \
+	&& echo "/usr/sbin/kvm-ok" >> /root/cmd.sh \
+    && chmod +x /root/cmd.sh
+
+# Rendre exécutable /root/cmd.sh à partir du compte $USERNAME
+RUN echo "$USERNAME ALL = (root) NOPASSWD: /root/cmd.sh" >> /etc/sudoers
+
+# Exécuter /root/cmd.sh au moment de la connexion au compte $USERNAME
+RUN echo "sudo /root/cmd.sh" >> ${WORKDIRECTORY}/.bash_profile
 
 # Installation Python 3
 RUN apt install -y git python3 python3-pip
@@ -120,13 +162,20 @@ ADD ${QPYTHON} ${WORKDIRECTORY}
 RUN cd ${WORKDIRECTORY} \
     && mv -f ${SL4A_APK1} sl4a.apk \
     && mv -f ${SL4A_APK2} python3_for_android.apk \
+    && mv -f ${QPYTHON} qpython3.apk \
     && chown ${USERNAME} sl4a.apk \
-    && chown ${USERNAME} python3_for_android.apk
+    && chown ${USERNAME} python3_for_android.apk \
+    && chown ${USERNAME} qpython3.apk
 
 RUN echo "export PS1=\"\\e[0;31m $PROJECTNAME\\e[m \$PS1\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN echo "export ANDROID_HOME=\"/opt/android-sdk-linux\"" >> ${WORKDIRECTORY}/.bash_profile
-RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools:\${ANDROID_HOME}/tools/bin\"" >> ${WORKDIRECTORY}/.bash_profile
+RUN echo "export PATH=\"\${PATH}:\${ANDROID_HOME}/tools:\${ANDROID_HOME}/platform-tools:\${ANDROID_HOME}/tools/bin:/opt/android-sdk-linux/android-studio/bin\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN chown ${USERNAME} ${WORKDIRECTORY}/.bash_profile
+
+RUN mkdir -p ${WORKDIRECTORY}/.android \
+    && chown ${USERNAME} ${WORKDIRECTORY}/.android \
+    && touch ${WORKDIRECTORY}/.android/repositories.cfg \
+    && chown ${USERNAME} ${WORKDIRECTORY}/.android/repositories.cfg
 
 # Start SSHD server...
 CMD ["/usr/sbin/sshd", "-D"]
