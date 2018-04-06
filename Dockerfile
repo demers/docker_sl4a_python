@@ -17,6 +17,7 @@ ENV QPYTHON=qpython3-gp-1.0.3.apk
 ENV ANDROID_TOOLS=repository/sdk-tools-linux-3859397.zip
 ENV ANDROID_SDK=android-sdk_r24.3.3-linux.tgz
 ENV ANDROID_STUDIO=studio/ide-zips/3.0.1.0/android-studio-ide-171.4443003-linux.zip
+ENV PYTHON=python
 
 RUN apt-get update
 
@@ -76,7 +77,7 @@ RUN ["/opt/tools/android-accept-licenses.sh", \
 # Unzip tools if not unzipped.
 # Strange that it is not uncompressed.
 RUN cd ${ANDROID_HOME} \
-    && unzip -o -q ${ANDROID_HOME}/temp/${ANDROID_TOOLS}
+    && unzip -o -q ${ANDROID_HOME}/temp/tools_r25.2.5-linux.zip
 
 # Unzip new Android tools
 RUN cd ${ANDROID_HOME} \
@@ -86,7 +87,7 @@ RUN cd ${ANDROID_HOME} \
     && rm -f tools.zip
 
 # Accept all Android licenses
-RUN /opt/android-sdk-linux/tools/bin/sdkmanager --update
+#RUN /opt/android-sdk-linux/tools/bin/sdkmanager --update
 RUN ["/opt/tools/android-accept-licenses2.sh", \
     "/opt/android-sdk-linux/tools/bin/sdkmanager --update"]
 
@@ -127,9 +128,13 @@ RUN echo "$USERNAME ALL = (root) NOPASSWD: /root/cmd.sh" >> /etc/sudoers
 RUN echo "sudo /root/cmd.sh" >> ${WORKDIRECTORY}/.bash_profile
 
 # Installation Python 3
-RUN apt install -y git python3 python3-pip
+RUN apt-get update
+RUN apt install -y git python3 python3-pip python3-mock
 # Mise à jour PIP
 RUN pip3 install --upgrade pip
+RUN pip3 install flake8
+RUN pip3 install flake8-docstrings
+RUN pip3 install pylint
 
 # Fournir accès complet à Android (REVOIR)
 RUN chown $USERNAME -R /opt
@@ -158,14 +163,21 @@ WORKDIR ${WORKDIRECTORY}
 ADD ${SL4A_APK1} ${WORKDIRECTORY}
 ADD ${SL4A_APK2} ${WORKDIRECTORY}
 ADD ${QPYTHON} ${WORKDIRECTORY}
+ADD ${PYTHON} ${WORKDIRECTORY}
 
 RUN cd ${WORKDIRECTORY} \
     && mv -f ${SL4A_APK1} sl4a.apk \
     && mv -f ${SL4A_APK2} python3_for_android.apk \
     && mv -f ${QPYTHON} qpython3.apk \
-    && chown ${USERNAME} sl4a.apk \
-    && chown ${USERNAME} python3_for_android.apk \
-    && chown ${USERNAME} qpython3.apk
+    && chown ${USERNAME} *.apk
+    #&& chown -R ${USERNAME} ${PYTHON}
+
+RUN echo "export PYTHONPATH=." >> ${WORKDIRECTORY}/.bash_profile
+
+RUN git clone https://github.com/pyenv/pyenv.git ${WORKDIRECTORY}/.pyenv
+RUN echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ${WORKDIRECTORY}/.bash_profile
+RUN echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ${WORKDIRECTORY}/.bash_profile
+RUN echo 'eval "$(pyenv init -)"' >> ${WORKDIRECTORY}/.bash_profile
 
 RUN echo "export PS1=\"\\e[0;31m $PROJECTNAME\\e[m \$PS1\"" >> ${WORKDIRECTORY}/.bash_profile
 RUN echo "export ANDROID_HOME=\"/opt/android-sdk-linux\"" >> ${WORKDIRECTORY}/.bash_profile
