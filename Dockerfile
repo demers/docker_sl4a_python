@@ -155,9 +155,6 @@ EXPOSE 5037
 EXPOSE 5554
 EXPOSE 5555
 
-ENV TZ=America/Toronto
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 # Standard SSH port
 EXPOSE 22
 
