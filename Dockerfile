@@ -21,7 +21,7 @@ ENV PYTHON=python
 
 RUN apt-get update
 
-RUN apt-get install -y python-dev unzip vim-nox
+RUN apt-get install -y python-dev unzip vim-nox exuberant-ctags
 
 # Install a basic SSH server
 RUN apt install -y openssh-server
